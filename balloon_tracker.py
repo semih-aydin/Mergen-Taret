@@ -1,7 +1,21 @@
 import os
 os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
+import time
 import cv2
+import serial
 from ultralytics import YOLO
+
+# serial config (change COM3 when arduino arrives)
+SERIAL_PORT = "COM3"
+BAUD_RATE = 115200
+ser = None
+
+try:
+    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.01)
+    time.sleep(2)  # wait for arduino reset
+    print(f"connected to {SERIAL_PORT}")
+except Exception:
+    print("arduino not connected - running in sim mode")
 
 # load trained balloon model
 model = YOLO("balloon.pt")
@@ -62,6 +76,8 @@ while True:
         if lost_count > max_lost_frames:
             smooth_tx, smooth_ty = None, None
 
+    dx, dy, fire = 0, 0, 0
+
     # if we have a target (either seen now or remembered from last few frames)
     if smooth_tx is not None and smooth_ty is not None:
         cv2.circle(frame, (smooth_tx, smooth_ty), 6, (0, 0, 255), -1)
@@ -71,14 +87,27 @@ while True:
         dy = smooth_ty - cy
 
         if abs(dx) < 35 and abs(dy) < 35:
+            fire = 1
             cv2.putText(frame, "LOCKED - FIRE", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
         else:
             cv2.putText(frame, f"dx: {dx} dy: {dy}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+    # send packet to arduino: <dx,dy,fire>
+    packet = f"<{dx},{dy},{fire}>\n"
+    if ser is not None and ser.is_open:
+        try:
+            ser.write(packet.encode("ascii"))
+        except Exception:
+            pass
 
     cv2.imshow("cam", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
+if ser is not None and ser.is_open:
+    ser.write(b"<0,0,0>\n")
+    ser.close()
 
 cam.release()
 cv2.destroyAllWindows()
