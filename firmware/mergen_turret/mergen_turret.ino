@@ -17,7 +17,7 @@
 #define MAX_DELAY_US 4000  // slowest step speed
 #define TIMEOUT_MS 500     // stop if pc disconnects
 
-// invert motor directions if moving backwards (0 or 1)
+// invert motor directions if cables are swapped
 #define INVERT_X 0
 #define INVERT_Y 0
 
