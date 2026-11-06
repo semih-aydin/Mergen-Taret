@@ -17,6 +17,10 @@
 #define MAX_DELAY_US 4000  // slowest step speed
 #define TIMEOUT_MS 500     // stop if pc disconnects
 
+// invert motor directions if moving backwards (0 or 1)
+#define INVERT_X 0
+#define INVERT_Y 0
+
 // target state from pc
 int dx = 0;
 int dy = 0;
@@ -82,7 +86,7 @@ void move_motors() {
 
     // x axis (left / right)
     if (abs(dx) > DEADZONE) {
-        digitalWrite(DIR_X, (dx > 0) ? HIGH : LOW);
+        digitalWrite(DIR_X, ((dx > 0) ^ INVERT_X) ? HIGH : LOW);
         unsigned long delay_x = get_step_delay(dx);
 
         if (now_us - last_step_x >= delay_x) {
@@ -95,7 +99,7 @@ void move_motors() {
 
     // y axis (up / down)
     if (abs(dy) > DEADZONE) {
-        digitalWrite(DIR_Y, (dy > 0) ? HIGH : LOW);
+        digitalWrite(DIR_Y, ((dy > 0) ^ INVERT_Y) ? HIGH : LOW);
         unsigned long delay_y = get_step_delay(dy);
 
         if (now_us - last_step_y >= delay_y) {
